@@ -1,0 +1,6 @@
+Revision history for Perl extension Bot::BasicBot::Pluggable::Module::TwitterFriendsStatus.
+
+0.01  Mon Jul  7 15:19:41 2008
+	- original version; created by h2xs 1.23 with options
+		-XA -n Bot::BasicBot::Pluggable::Module::TwitterFriendsStatus
+
