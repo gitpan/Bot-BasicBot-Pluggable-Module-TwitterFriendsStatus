@@ -27,7 +27,7 @@ use XML::Simple 'XMLin';
 use Bot::BasicBot::Pluggable::Module;
 use base 'Bot::BasicBot::Pluggable::Module';
 
-our $VERSION = 0.02;
+our $VERSION = 0.2;
 
 use constant {
     CREDENTIALS => {

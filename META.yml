@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Bot-BasicBot-Pluggable-Module-TwitterFriendsStatus
-version:             0.02
+version:             0.2
 abstract:            Echo Twitter comments
 license:             perl
 author:              
