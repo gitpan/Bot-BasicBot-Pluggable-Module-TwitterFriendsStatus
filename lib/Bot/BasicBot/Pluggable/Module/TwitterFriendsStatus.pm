@@ -7,8 +7,9 @@
 #   Adds ability for Bot::BasicBot::Pluggable IRC bots to check for comments
 #   posted to Twitter for a list of users and echo them into a channel.
 #
-# AUTHOR
+# AUTHORS
 #   Gryphon Shafer <gryphon@cpan.org>
+#   David Precious <davidp@preshweb.co.uk>
 #
 # COPYRIGHT
 #   Copyright (C) 2008 by Gryphon Shafer
@@ -26,7 +27,7 @@ use XML::Simple 'XMLin';
 use Bot::BasicBot::Pluggable::Module;
 use base 'Bot::BasicBot::Pluggable::Module';
 
-our $VERSION = 0.1;
+our $VERSION = 0.02;
 
 use constant {
     CREDENTIALS => {
@@ -44,11 +45,11 @@ use constant {
 
 my $tick_counter = TICK_INTERVAL;
 
-my $ua = LWP::UserAgent->new({
+my $ua = LWP::UserAgent->new(
     'agent'        => 'Bot::BasicBot::Pluggable::Module::TwitterFriendsStatus/0.1 ',
     'max_redirect' => 7,
     'parse_head'   => 1,
-});
+);
 
 sub help {
     return join( ', ',
@@ -80,15 +81,19 @@ sub said {
     my ( $self, $message, $priority ) = @_;
     return unless ( $priority == 2 );
 
-    if ( $message->{'body'} =~ /^\s*!\s*twitter\s*auth\s*(\S+)\s+(\S+)/ ) {
-        $ua->credentials( CREDENTIALS->{'netloc'}, CREDENTIALS->{'realm'}, $1, $2 );
+    if (my($user,$pass) = $message->{'body'} =~ /^\s*!\s*twitter\s*auth\s*(\S+)\s+(\S+)/ ) {
+        $ua->credentials( CREDENTIALS->{'netloc'}, CREDENTIALS->{'realm'}, $user, $pass );
         my $response = $ua->get( URL->{'verify_credentials'} );
-
-        if ( $response->content() eq '<authorized>true</authorized>' ) {
+	my $credentials = XMLin($response->content());
+        use Data::Dumper;
+	warn Dumper($credentials);
+	if ( $credentials->{name} eq $user) {
             $self->reply(
                 $message,
-                'You have properly authenticated with Twitter. ' .
-                'This authentication will be saved in the bot memory storage.',
+                "You have properly authenticated to Twitter as $user\n" .
+                "This authentication will be saved in the bot memory storage.\n" .
+		"$user has $credentials->{followers_count} followers and" .
+		"follows $credentials->{friends_count} users.\n"
             );
             $self->set( 'username' => $1 );
             $self->set( 'password' => $2 );
@@ -96,7 +101,7 @@ sub said {
         else {
             $self->reply(
                 $message,
-                'You have failed to properly authenticate with Twitter.',
+                "You have failed to properly authenticate with Twitter as $user",
             );
             $self->set( 'username' => '' );
             $self->set( 'password' => '' );
@@ -104,7 +109,7 @@ sub said {
     }
 
     elsif ( $message->{'body'} =~ /^\s*twitter\s*add\s*(\S+)/ ) {
-        my $response = $ua->get( URL->{'friend_add'}[0] . $1 . URL->{'friend_add'}[1] );
+        my $response = $ua->post( URL->{'friend_add'}[0] . $1 . URL->{'friend_add'}[1] );
         $self->reply(
             $message,
             "Added $1 to my Twitter following list.",
@@ -112,7 +117,7 @@ sub said {
     }
 
     elsif ( $message->{'body'} =~ /^\s*twitter\s*remove\s*(\S+)/ ) {
-        my $response = $ua->get( URL->{'friend_remove'}[0] . $1 . URL->{'friend_remove'}[1] );
+        my $response = $ua->post( URL->{'friend_remove'}[0] . $1 . URL->{'friend_remove'}[1] );
         $self->reply(
             $message,
             "Removed $1 from my Twitter following list.",
@@ -132,7 +137,7 @@ sub tick {
     _twitter_friends_status( $self, 1 );
 
     foreach ( $self->store_keys() ) {
-        $self->unset($_) if ( $_ =~ /^\d+$/ and $self->get($_) + 60 * 60 * 25 < time );
+        $self->unset($_) if ( $_ =~ /^\d+$/ and $self->get($_) + 60 * 60 * 50 < time );
     }
 }
 
@@ -166,13 +171,14 @@ sub _twitter_friends_status {
 __END__
 
 =pod
+
 =head1 NAME
 
 Bot::BasicBot::Pluggable::Module::TwitterFriendsStatus - Echo Twitter comments
 
 =head1 VERSION
 
-This document describes Bot::BasicBot::Pluggable::Module::TwitterFriendsStatus version 0.01
+This document describes Bot::BasicBot::Pluggable::Module::TwitterFriendsStatus version 0.0.4
 
 =head1 SYNOPSIS
 
@@ -207,6 +213,8 @@ Removes a users from the list of users the bot is following.
 =head1 AUTHOR
 
 Gryphon Shafer E<lt>gryphon@cpan.orgE<gt>
+
+David Precious E<lt>davidp@preshweb.co.ukE<gt>
 
     code('Perl') || die;
 
